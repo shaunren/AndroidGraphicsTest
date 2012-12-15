@@ -1,6 +1,7 @@
 package com.example.graphicstest;
 
 import java.util.ArrayList;
+import java.math.*;
 import java.util.Calendar;
 import java.util.Random;
 
@@ -8,10 +9,12 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.util.Log;
 import android.view.Menu;
@@ -28,6 +31,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(new Panel(this));
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 	}
 
 	@Override
@@ -39,10 +43,12 @@ public class MainActivity extends Activity {
 	
 }
 class Panel extends SurfaceView implements SurfaceHolder.Callback{
+	private static final String AVTAG = "GraphicsTest";
 	long t = -1000, f = 0;
 	Paint _paint = new Paint();
 	Random r = new Random();
 	ArrayList<BoxParticle> squares = new ArrayList<BoxParticle>();
+	ArrayList<Bullet> bullets = new ArrayList<Bullet>();
 	//BoxParticle b = new BoxParticle(r, 400, 400);
 	private DrawThread _thread;
 	private int _x = 20;
@@ -94,18 +100,37 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 		long nt = SystemClock.elapsedRealtime();
 		//canvas.drawBitmap(square, b.getx(), b.gety(), null);
 		
-		if(f%25==0) {
+		if(f%10==5) {
+			
 			squares.add(new BoxParticle(r, canvas.getHeight(), canvas.getWidth()));
-			Log.d("av", "av" + canvas.getWidth() + " " + canvas.getHeight());
+			bullets.add(new Bullet(_x, _y, 500, 500, canvas.getHeight(), canvas.getWidth()));
+			Log.d(AVTAG, "square added");
 		}
 		for(int i = 0; i <squares.size(); i++){
 			if(!squares.get(i).onscreen()) squares.remove(i);
 		}
+		for(int i = 0; i <bullets.size(); i++){
+			if(!bullets.get(i).onscreen()) bullets.remove(i);
+		}
 		for(BoxParticle i : squares) {
 			i.update(((double)nt-t)/1000);
-			canvas.drawBitmap(square, i.getx()-testWidth/2, i.gety()-testHeight/2, null);				
+			Matrix matrix = new Matrix();
+			
+			matrix.setRotate(i.getAngle(),square.getWidth()/2,square.getHeight()/2);
+			matrix.postTranslate(i.getx(), i.gety());
+			
+			canvas.drawBitmap(square, matrix, null);
+			//canvas.drawBitmap(square, i.getx()-testWidth>>1, i.gety()-testHeight>>1, null);				
+			//Log.d(AVTAG, Double.toString(Math.atan2(canvas.getHeight()/2 - _y,  canvas.getWidth()/2 - _x)));
 		}
-		canvas.drawBitmap(test, _x, _y, null);
+		for(Bullet i : bullets){
+			i.update(((double)nt-t)/1000);
+			canvas.drawBitmap(square, i.getx(), i.gety(), null);	
+			Log.d(AVTAG, i.getx() + " " + i.gety());
+		}
+		
+		
+		canvas.drawBitmap(test, _x-test.getWidth()/2, _y-test.getHeight()/2, null);
 		f++;
 		t = nt;
 	}
@@ -152,9 +177,11 @@ class DrawThread extends Thread{
 class BoxParticle {
 	Random r;
 	private int x, y, h, l;
+	private double c;
 	private int dir; //0 for left right, 1 for down up, 2 for right left, 3 for up down
 	private double dx = 0;
 	private double dy = 0;
+	private float angle;
 	
 	public BoxParticle(Random r, int h, int l) {
 		this.l = l;
@@ -173,6 +200,8 @@ class BoxParticle {
 	public void update(double dt){
 		x += dx*dt;
 		y += dy*dt;
+		
+		angle = (float) (Math.atan2(dy, dx)*180/Math.PI);
 	}
 	public int getx() {
 		return x;
@@ -180,5 +209,43 @@ class BoxParticle {
 	public int gety() {
 		return y;
 	}
+	public float getAngle() {
+		return angle;
+	}
 	
+}
+class Bullet{
+	int x0, y0;
+	int targetX, targetY;
+	int x, y;
+	int l, h; 
+	double c = 0.1;
+	double dx, dy, dt;
+	public Bullet(int targetX, int targetY, int x0, int y0, int l, int h){
+		this.targetX = targetX;
+		this.targetY = targetY;
+		this.x0 = x0;
+		this.y0 = y0;
+		x = x0;
+		y = y0;
+		this.l = l;
+		this.h = h;
+		dx = c*(targetX-x0);
+		dy = c*(targetY-x0);
+		
+	}
+	public void update(double dt){
+		x += c*dx*dt;
+		y += c*dy*dt;
+		
+	}
+	public boolean onscreen() {
+		return !(x > l+20 || x < -20 || y > h+20 || y < -20);
+	}
+	public int getx() {
+		return x;
+	}
+	public int gety() {
+		return y;
+	}
 }
