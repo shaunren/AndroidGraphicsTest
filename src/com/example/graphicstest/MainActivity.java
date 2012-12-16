@@ -105,6 +105,7 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 			squares.add(new BoxParticle(r, canvas.getHeight(), canvas.getWidth()));
 			bullets.add(new Bullet(_x, _y, 500, 500, canvas.getHeight(), canvas.getWidth()));
 			Log.d(AVTAG, "square added");
+		
 		}
 		for(int i = 0; i <squares.size(); i++){
 			if(!squares.get(i).onscreen()) squares.remove(i);
@@ -125,8 +126,15 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 		}
 		for(Bullet i : bullets){
 			i.update(((double)nt-t)/1000);
-			canvas.drawBitmap(square, i.getx(), i.gety(), null);	
-			Log.d(AVTAG, i.getx() + " " + i.gety());
+			
+			//canvas.drawBitmap(square, i.getx(), i.gety(), null);
+			Matrix matrix = new Matrix();
+			
+			matrix.setRotate(i.getAngle(),square.getWidth()/2,square.getHeight()/2);
+			matrix.postTranslate(i.getx(), i.gety());
+			//Log.d(AVTAG, i.getx() + " " + i.gety());
+			canvas.drawBitmap(square, matrix, null);
+			//Log.d(AVTAG,""+ i.getAngle());
 		}
 		
 		
@@ -219,9 +227,10 @@ class Bullet{
 	int targetX, targetY;
 	int x, y;
 	int l, h; 
-	double c = 0.1;
+	double c = 0.3;
 	double dx, dy, dt;
-	public Bullet(int targetX, int targetY, int x0, int y0, int l, int h){
+	float angle;
+	public Bullet(int targetX, int targetY, int x0, int y0, int h, int l){
 		this.targetX = targetX;
 		this.targetY = targetY;
 		this.x0 = x0;
@@ -232,7 +241,7 @@ class Bullet{
 		this.h = h;
 		dx = c*(targetX-x0);
 		dy = c*(targetY-x0);
-		
+		angle = (float) (Math.atan2(dy, dx)*180/Math.PI);
 	}
 	public void update(double dt){
 		x += c*dx*dt;
@@ -248,4 +257,8 @@ class Bullet{
 	public int gety() {
 		return y;
 	}
+	public float getAngle(){
+		return angle;
+	}
+	
 }
