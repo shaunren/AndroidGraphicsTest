@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
 }
 class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	private static final String AVTAG = "GraphicsTest";
-	long t = -1000, f = 0;
+	long t = -1000, f = -1000;
 	Paint _paint = new Paint();
 	Random r = new Random();
 	ArrayList<BoxParticle> squares = new ArrayList<BoxParticle>();
@@ -53,6 +53,10 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	private DrawThread _thread;
 	private int _x = 20;
 	private int _y = 20;
+	private int bulletid = 0;
+	Matrix matrix = new Matrix();
+	Bitmap test = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+	Bitmap square = BitmapFactory.decodeResource(getResources(), R.drawable.square);
 	@Override
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
 		// TODO Auto-generated method stub
@@ -68,14 +72,13 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	}
 	@Override
 	public void surfaceDestroyed(SurfaceHolder arg0) {
-		boolean retry = true;
 		_thread.setRunning(false);
-		while(retry){
+		while(true) {
 			try {
 				_thread.join();
-				retry = false;
+				break;
 			}
-			catch (InterruptedException e){
+			catch (InterruptedException e) {
 				
 			}
 		}
@@ -91,55 +94,52 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	}
 	@Override
 	public void onDraw (Canvas canvas){
-		Bitmap test = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
-		Bitmap square = BitmapFactory.decodeResource(getResources(), R.drawable.square);
-		int testWidth = test.getWidth();
-		int testHeight = test.getHeight();
-		canvas.drawColor(Color.BLACK);
-		
 		long nt = SystemClock.elapsedRealtime();
+		//if (nt-t < 16) return; // max framerate 60 FPS
+		if (t < 0) t=nt;
+		canvas.drawColor(Color.BLACK);
 		//canvas.drawBitmap(square, b.getx(), b.gety(), null);
 		
-		if(f%10==5) {
+		if(nt-f >= 1000) {
 			
 			squares.add(new BoxParticle(r, canvas.getHeight(), canvas.getWidth()));
-			bullets.add(new Bullet(_x, _y, 500, 500, canvas.getHeight(), canvas.getWidth()));
-			Log.d(AVTAG, "square added");
-		
+			bullets.add(new Bullet(bulletid++, _x, _y, 100, 100, canvas.getHeight(), canvas.getWidth()));
+			f = nt;
 		}
-		for(int i = 0; i <squares.size(); i++){
+		for (int i=0; i<squares.size(); i++) {
 			if(!squares.get(i).onscreen()) squares.remove(i);
 		}
-		for(int i = 0; i <bullets.size(); i++){
+		for (int i=0; i<bullets.size(); i++) {
 			if(!bullets.get(i).onscreen()) bullets.remove(i);
 		}
-		for(BoxParticle i : squares) {
-			i.update(((double)nt-t)/1000);
-			Matrix matrix = new Matrix();
+		for (BoxParticle i : squares) {
+			i.update(((double)(nt-t))/1000);
 			
 			matrix.setRotate(i.getAngle(),square.getWidth()/2,square.getHeight()/2);
 			matrix.postTranslate(i.getx(), i.gety());
+			
+			//Log.d(AVTAG, "Position: " + i.getx() + ", " + i.gety());
 			
 			canvas.drawBitmap(square, matrix, null);
 			//canvas.drawBitmap(square, i.getx()-testWidth>>1, i.gety()-testHeight>>1, null);				
 			//Log.d(AVTAG, Double.toString(Math.atan2(canvas.getHeight()/2 - _y,  canvas.getWidth()/2 - _x)));
 		}
 		for(Bullet i : bullets){
-			i.update(((double)nt-t)/1000);
+			i.update(((double)(nt-t))/1000);
 			
 			//canvas.drawBitmap(square, i.getx(), i.gety(), null);
-			Matrix matrix = new Matrix();
+			//Matrix matrix = new Matrix();
 			
 			matrix.setRotate(i.getAngle(),square.getWidth()/2,square.getHeight()/2);
 			matrix.postTranslate(i.getx(), i.gety());
-			//Log.d(AVTAG, i.getx() + " " + i.gety());
+			if (i.id==15)
+				Log.d(AVTAG, "Position:" + i.getx() + " " + i.gety());
 			canvas.drawBitmap(square, matrix, null);
 			//Log.d(AVTAG,""+ i.getAngle());
 		}
 		
 		
 		canvas.drawBitmap(test, _x-test.getWidth()/2, _y-test.getHeight()/2, null);
-		f++;
 		t = nt;
 	}
 	@Override
@@ -173,23 +173,22 @@ class DrawThread extends Thread{
 				}
 			}
 			finally {
-				if(c != null) {
+				if(c != null)
 					_surfaceHolder.unlockCanvasAndPost(c);
-				}
 				
 			}
-			SystemClock.sleep(40);
 		}
 	}
 }
 class BoxParticle {
 	Random r;
-	private int x, y, h, l;
+	private int h, l;
+	private double x,y;
 	private double c;
 	private int dir; //0 for left right, 1 for down up, 2 for right left, 3 for up down
 	private double dx = 0;
 	private double dy = 0;
-	private float angle;
+	private double angle;
 	
 	public BoxParticle(Random r, int h, int l) {
 		this.l = l;
@@ -200,37 +199,40 @@ class BoxParticle {
 		else if (dir == 1){dy = -50; x = k%l; y = h;}
 		else if (dir == 2){dx = -50; x = l; y = k%h;}
 		else if (dir == 3){dy = 50; x = k%l; y = 0;}
+		angle = Math.atan2(dy, dx)*180/Math.PI;
 		
 	}
 	public boolean onscreen() {
 		return !(x > l+20 || x < -20 || y > h+20 || y < -20);
 	}
-	public void update(double dt){
+	public void update(double dt) {
 		x += dx*dt;
 		y += dy*dt;
 		
-		angle = (float) (Math.atan2(dy, dx)*180/Math.PI);
+		
 	}
 	public int getx() {
-		return x;
+		return (int)Math.round(x);
 	}
 	public int gety() {
-		return y;
+		return (int)Math.round(y);
 	}
 	public float getAngle() {
-		return angle;
+		return (float)angle;
 	}
 	
 }
-class Bullet{
-	int x0, y0;
+class Bullet {
+	int x0, y0, id;
 	int targetX, targetY;
-	int x, y;
+	double x, y;
 	int l, h; 
-	double c = 0.3;
+	double c = 50;
 	double dx, dy, dt;
-	float angle;
-	public Bullet(int targetX, int targetY, int x0, int y0, int h, int l){
+	double angle;
+	private static final double EPSILON = 0.00005;
+	public Bullet(int id, int targetX, int targetY, int x0, int y0, int h, int l){
+		this.id = id;
 		this.targetX = targetX;
 		this.targetY = targetY;
 		this.x0 = x0;
@@ -239,26 +241,31 @@ class Bullet{
 		y = y0;
 		this.l = l;
 		this.h = h;
-		dx = c*(targetX-x0);
-		dy = c*(targetY-x0);
-		angle = (float) (Math.atan2(dy, dx)*180/Math.PI);
+		dx = ((double)targetX-x0);
+		dy = ((double)targetY-y0);
+		double norm = Math.sqrt(dx*dx + dy*dy);
+		dx *= c/norm;
+		dy *= c/norm;
+		if (Math.abs(dx)<EPSILON) dx = 0;
+		if (Math.abs(dy)<EPSILON) dy = 0;
+		angle = Math.atan2(dy, dx)*180/Math.PI;
 	}
 	public void update(double dt){
-		x += c*dx*dt;
-		y += c*dy*dt;
+		x += dx*dt;
+		y += dy*dt;
 		
 	}
 	public boolean onscreen() {
 		return !(x > l+20 || x < -20 || y > h+20 || y < -20);
 	}
 	public int getx() {
-		return x;
+		return (int)Math.round(x);
 	}
 	public int gety() {
-		return y;
+		return (int)Math.round(y);
 	}
-	public float getAngle(){
-		return angle;
+	public float getAngle() {
+		return (float)angle;
 	}
 	
 }
