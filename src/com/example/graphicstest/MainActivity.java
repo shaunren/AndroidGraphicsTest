@@ -56,6 +56,7 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	private int _y = 20;
 	private int bulletid = 0;
 	Matrix matrix = new Matrix();
+	Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 	Bitmap test = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
 	Bitmap square = BitmapFactory.decodeResource(getResources(), R.drawable.square);
 	@Override
@@ -102,7 +103,6 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 		//canvas.drawBitmap(square, b.getx(), b.gety(), null);
 		
 		if(nt-f >= 1000) {
-			
 			squares.add(new BoxParticle(r, canvas.getHeight(), canvas.getWidth()));
 			bullets.add(new Bullet(bulletid++, _x, _y, 100, 100, canvas.getHeight(), canvas.getWidth()));
 			f = nt;
@@ -121,11 +121,11 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 			
 			//Log.d(AVTAG, "Position: " + i.getx() + ", " + i.gety());
 			
-			canvas.drawBitmap(square, matrix, null);
+			canvas.drawBitmap(square, matrix, p);
 			//canvas.drawBitmap(square, i.getx()-testWidth>>1, i.gety()-testHeight>>1, null);				
 			//Log.d(AVTAG, Double.toString(Math.atan2(canvas.getHeight()/2 - _y,  canvas.getWidth()/2 - _x)));
 		}
-		for(Bullet i : bullets){
+		for(Bullet i : bullets) {
 			i.update(((double)(nt-t))/1000);
 			
 			//canvas.drawBitmap(square, i.getx(), i.gety(), null);
@@ -133,9 +133,9 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 			
 			matrix.setRotate(i.getAngle(),square.getWidth()/2,square.getHeight()/2);
 			matrix.postTranslate(i.getx(), i.gety());
-			if (i.id==15)
-				Log.d(AVTAG, "Position:" + i.getx() + " " + i.gety());
-			canvas.drawBitmap(square, matrix, null);
+			//if (i.id==15)
+			//	Log.d(AVTAG, "Position:" + i.getx() + " " + i.gety());
+			canvas.drawBitmap(square, matrix, p);
 			//Log.d(AVTAG,""+ i.getAngle());
 		}
 		
@@ -194,12 +194,11 @@ class BoxParticle {
 	public BoxParticle(Random r, int h, int l) {
 		this.l = l;
 		this.h = h;
-		int k = r.nextInt();
-		dir = k%4;
-		if (dir == 0){dx = 50; x = 0; y = k%h;} 
-		else if (dir == 1){dy = -50; x = k%l; y = h;}
-		else if (dir == 2){dx = -50; x = l; y = k%h;}
-		else if (dir == 3){dy = 50; x = k%l; y = 0;}
+		dir = r.nextInt()%4;
+		if (dir == 0){dx = 50; x = 0; y = r.nextInt()%h;} 
+		else if (dir == 1){dy = -50; x = r.nextInt()%l; y = h;}
+		else if (dir == 2){dx = -50; x = l; y = r.nextInt()%h;}
+		else if (dir == 3){dy = 50; x = r.nextInt()%l; y = 0;}
 		angle = Math.atan2(dy, dx)*180/Math.PI;
 		
 	}
