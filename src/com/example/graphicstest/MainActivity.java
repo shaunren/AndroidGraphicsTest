@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
 	
 }
 class Panel extends SurfaceView implements SurfaceHolder.Callback{
+	long start;
 	private static final String AVTAG = "GraphicsTest";
 	long t = -1000, f = -1000;
 	Paint _paint = new Paint();
@@ -66,6 +67,7 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 	}
 	@Override
 	public void surfaceCreated(SurfaceHolder arg0) {
+		start = SystemClock.elapsedRealtime();
 		_paint.setColor(Color.WHITE);
 		t = SystemClock.elapsedRealtime();
 		_thread.setRunning(true);
@@ -103,16 +105,21 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 		//canvas.drawBitmap(square, b.getx(), b.gety(), null);
 		
 		if(nt-f >= 1000) {
+
 			squares.add(new BoxParticle(r, canvas.getHeight(), canvas.getWidth()));
-			bullets.add(new Bullet(bulletid++, _x, _y, 100, 100, canvas.getHeight(), canvas.getWidth()));
+			Bullet a= new Bullet(bulletid++, _x, _y, 100, 100, canvas.getHeight(), canvas.getWidth());
+			bullets.add(a);
+			Log.d(AVTAG, a.getx() + " " + a.gety());
 			f = nt;
 		}
 		for (int i=0; i<squares.size(); i++) {
+			Log.d(AVTAG, "" + squares.get(i).getx() + " " + squares.get(i).gety( ));
 			if(!squares.get(i).onscreen()) squares.remove(i);
 		}
 		for (int i=0; i<bullets.size(); i++) {
 			if(!bullets.get(i).onscreen()) bullets.remove(i);
 		}
+		
 		for (BoxParticle i : squares) {
 			i.update(((double)(nt-t))/1000);
 			
@@ -122,6 +129,7 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 			//Log.d(AVTAG, "Position: " + i.getx() + ", " + i.gety());
 			
 			canvas.drawBitmap(square, matrix, p);
+			
 			//canvas.drawBitmap(square, i.getx()-testWidth>>1, i.gety()-testHeight>>1, null);				
 			//Log.d(AVTAG, Double.toString(Math.atan2(canvas.getHeight()/2 - _y,  canvas.getWidth()/2 - _x)));
 		}
@@ -141,6 +149,7 @@ class Panel extends SurfaceView implements SurfaceHolder.Callback{
 		
 		
 		canvas.drawBitmap(test, _x-test.getWidth()/2, _y-test.getHeight()/2, null);
+		Log.d(AVTAG,"fuck");
 		t = nt;
 	}
 	@Override
@@ -180,92 +189,4 @@ class DrawThread extends Thread{
 			}
 		}
 	}
-}
-class BoxParticle {
-	Random r;
-	private int h, l;
-	private double x,y;
-	private double c;
-	private int dir; //0 for left right, 1 for down up, 2 for right left, 3 for up down
-	private double dx = 0;
-	private double dy = 0;
-	private double angle;
-	
-	public BoxParticle(Random r, int h, int l) {
-		this.l = l;
-		this.h = h;
-		dir = r.nextInt()%4;
-		if (dir == 0){dx = 50; x = 0; y = r.nextInt()%h;} 
-		else if (dir == 1){dy = -50; x = r.nextInt()%l; y = h;}
-		else if (dir == 2){dx = -50; x = l; y = r.nextInt()%h;}
-		else if (dir == 3){dy = 50; x = r.nextInt()%l; y = 0;}
-		angle = Math.atan2(dy, dx)*180/Math.PI;
-		
-	}
-	public boolean onscreen() {
-		return !(x > l+20 || x < -20 || y > h+20 || y < -20);
-	}
-	public void update(double dt) {
-		x += dx*dt;
-		y += dy*dt;
-		
-		
-	}
-	public int getx() {
-		return (int)Math.round(x);
-	}
-	public int gety() {
-		return (int)Math.round(y);
-	}
-	public float getAngle() {
-		return (float)angle;
-	}
-	
-}
-class Bullet {
-	int x0, y0, id;
-	int targetX, targetY;
-	double x, y;
-	int l, h; 
-	double c = 50;
-	double dx, dy, dt;
-	double angle;
-	private static final double EPSILON = 0.00005;
-	public Bullet(int id, int targetX, int targetY, int x0, int y0, int h, int l){
-		this.id = id;
-		this.targetX = targetX;
-		this.targetY = targetY;
-		this.x0 = x0;
-		this.y0 = y0;
-		x = x0;
-		y = y0;
-		this.l = l;
-		this.h = h;
-		dx = ((double)targetX-x0);
-		dy = ((double)targetY-y0);
-		double norm = Math.sqrt(dx*dx + dy*dy);
-		dx *= c/norm;
-		dy *= c/norm;
-		if (Math.abs(dx)<EPSILON) dx = 0;
-		if (Math.abs(dy)<EPSILON) dy = 0;
-		angle = Math.atan2(dy, dx)*180/Math.PI;
-	}
-	public void update(double dt){
-		x += dx*dt;
-		y += dy*dt;
-		
-	}
-	public boolean onscreen() {
-		return !(x > l+20 || x < -20 || y > h+20 || y < -20);
-	}
-	public int getx() {
-		return (int)Math.round(x);
-	}
-	public int gety() {
-		return (int)Math.round(y);
-	}
-	public float getAngle() {
-		return (float)angle;
-	}
-	
 }
